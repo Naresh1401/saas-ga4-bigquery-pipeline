@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "saas-ga4-bigquery-pipeline"
+version = "1.0.0"
+description = "End-to-end GA4 → BigQuery → dbt → Airflow analytics pipeline for B2B SaaS"
+requires-python = ">=3.11"
+dependencies = [
+    "google-cloud-bigquery>=3.14,<4",
+    "google-auth>=2.25,<3",
+    "dbt-bigquery>=1.7,<2",
+    "apache-airflow>=2.8,<3",
+    "streamlit>=1.30,<2",
+    "plotly>=5.18,<6",
+    "pandas>=2.1,<3",
+    "pyarrow>=14.0,<16",
+    "python-dotenv>=1.0,<2",
+    "Faker>=22.0,<24",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4,<9",
+    "pytest-cov>=4.1,<6",
+    "ruff>=0.2,<1",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "data"]

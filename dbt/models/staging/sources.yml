@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: ga4
+    database: "{{ env_var('GCP_PROJECT_ID') }}"
+    schema: "{{ var('ga4_dataset') }}"
+    tables:
+      - name: events
+        identifier: "events_*"
+        description: >
+          GA4 BigQuery export — daily sharded event tables (events_YYYYMMDD).
+          Contains standard GA4 events plus SaaS custom events
+          (trial_started, feature_used, subscription_started, etc.).
+        loaded_at_field: parse_date('%Y%m%d', event_date)
+        freshness:
+          warn_after: { count: 24, period: hour }
+          error_after: { count: 48, period: hour }

@@ -1,0 +1,196 @@
+version: 2
+
+models:
+  # ══════════════════════════════════════════════════════════
+  # STAGING
+  # ══════════════════════════════════════════════════════════
+  - name: stg_ga4__events
+    description: >
+      Flattened GA4 events — one row per event with nested event_params
+      extracted into named columns.
+    columns:
+      - name: event_date
+        description: Event date (DATE)
+        tests:
+          - not_null
+      - name: user_pseudo_id
+        description: GA4 anonymous user identifier
+        tests:
+          - not_null
+      - name: event_name
+        description: GA4 event name (page_view, trial_started, etc.)
+        tests:
+          - not_null
+      - name: event_timestamp
+        description: Event timestamp in microseconds
+        tests:
+          - not_null
+
+  - name: stg_ga4__sessions
+    description: >
+      Sessionised GA4 events with channel grouping and SaaS flags.
+    columns:
+      - name: session_id
+        description: Surrogate key (user_pseudo_id + ga_session_id)
+        tests:
+          - unique
+          - not_null
+      - name: user_pseudo_id
+        tests:
+          - not_null
+      - name: session_channel_group
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - "Paid Search"
+                - "Organic"
+                - "Direct"
+                - "Social"
+                - "Referral"
+                - "Email"
+                - "Other"
+      - name: session_date
+        tests:
+          - not_null
+
+  - name: stg_ga4__users
+    description: >
+      User-level aggregation — one row per user_pseudo_id with lifetime metrics.
+    columns:
+      - name: user_pseudo_id
+        tests:
+          - unique
+          - not_null
+      - name: first_seen_date
+        tests:
+          - not_null
+      - name: total_sessions
+        tests:
+          - not_null
+
+  # ══════════════════════════════════════════════════════════
+  # INTERMEDIATE
+  # ══════════════════════════════════════════════════════════
+  - name: int_trial_funnel
+    description: >
+      Per-user trial funnel with stage timestamps and conversion days.
+    columns:
+      - name: user_pseudo_id
+        tests:
+          - unique
+          - not_null
+      - name: trial_started_at
+        tests:
+          - not_null
+      - name: days_trial_to_paid
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 90
+              where: "days_trial_to_paid is not null"
+
+  - name: int_feature_adoption
+    description: >
+      Feature usage by user × feature with breadth scoring.
+    columns:
+      - name: user_pseudo_id
+        tests:
+          - not_null
+      - name: feature_name
+        tests:
+          - not_null
+
+  - name: int_plg_signals
+    description: >
+      Product-led growth signals per user — feeds PQL scoring.
+    columns:
+      - name: user_pseudo_id
+        tests:
+          - unique
+          - not_null
+      - name: pql_score
+        tests:
+          - not_null
+
+  - name: int_web_performance
+    description: Page-level web metrics per day.
+    columns:
+      - name: event_date
+        tests:
+          - not_null
+      - name: page_path
+        tests:
+          - not_null
+
+  # ══════════════════════════════════════════════════════════
+  # MARTS
+  # ══════════════════════════════════════════════════════════
+  - name: fct_saas_web_kpis
+    description: >
+      Daily traffic KPIs by channel / country / device with trial + conversion counts.
+    columns:
+      - name: date_day
+        tests:
+          - not_null
+      - name: channel_group
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - "Paid Search"
+                - "Organic"
+                - "Direct"
+                - "Social"
+                - "Referral"
+                - "Email"
+                - "Other"
+
+  - name: fct_trial_cohorts
+    description: Weekly trial cohorts with 7/14/30-day conversion rates.
+    columns:
+      - name: cohort_week
+        tests:
+          - unique
+          - not_null
+      - name: cohort_size
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+
+  - name: fct_feature_funnel
+    description: Feature adoption funnel — which features drive conversion.
+    columns:
+      - name: feature_name
+        tests:
+          - unique
+          - not_null
+      - name: conversion_rate
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              where: "conversion_rate is not null"
+
+  - name: fct_plg_pipeline
+    description: Product-qualified leads pipeline for sales outreach.
+    columns:
+      - name: user_pseudo_id
+        tests:
+          - unique
+          - not_null
+      - name: pql_score
+        tests:
+          - not_null
+
+  - name: dim_pages
+    description: Page dimension with content type and performance metrics.
+    columns:
+      - name: page_path
+        tests:
+          - unique
+          - not_null
+      - name: content_type
+        tests:
+          - not_null

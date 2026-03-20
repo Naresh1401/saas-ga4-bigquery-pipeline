@@ -1,0 +1,37 @@
+# Byte-compiled / optimised
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# GCP credentials — NEVER commit
+*.json
+!dbt/packages.yml
+
+# Airflow local
+airflow_home/
+logs/
+airflow.db
+airflow.cfg
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data artefacts (generated)
+data/*.ndjson
+data/*.csv
